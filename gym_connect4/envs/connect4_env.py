@@ -50,17 +50,20 @@ class Connect4Env(gym.Env):
         Reward is 0 for every step.
         If there are no other further steps possible, Reward is 0.5 and termination will occur
         If it's a win condition, Reward will be 1 and termination will occur
+        If it is an invalid move, Reward will be -1 and termination will occur
 
     Starting State:
         All observations are assigned a value of 0
 
     Episode Termination:
         No more spaces left for pieces
-        4 pieces are present in a line
+        4 pieces are present in a line: horizontal, vertical or diagonally
+        An attempt is made to place a piece in an invalid location
     """
 
     metadata = {'render.modes': ['human']}
 
+    LOSS_REWARD = -1
     DEF_REWARD = 0
     DRAW_REWARD = 0.5
     WIN_REWARD = 1
@@ -70,12 +73,11 @@ class Connect4Env(gym.Env):
 
         self.board_shape = board_shape
 
-        self.observation_space = spaces.Box(low=-1, high=1, shape=board_shape)
+        self.observation_space = spaces.Box(low=-1, high=1, shape=board_shape, dtype=int)
         self.action_space = spaces.Discrete(board_shape[1])
 
         self.current_player = 1
-        # self.board = np.zeros(self.board_shape)
-        self.board = [[0 for col in range(self.board_shape[1])] for row in range(self.board_shape[0])]
+        self.board = np.zeros(self.board_shape, dtype=int)
 
     # def next_player(self, currrent_player: int) -> int:
     #     return (currrent_player + 1) % 2
@@ -94,7 +96,7 @@ class Connect4Env(gym.Env):
 
         if not self.is_valid_action(action):
             print("Invalid action, column is already full")
-            return np.array(self.board), self.DEF_REWARD, False, {}
+            return self.board, self.LOSS_REWARD, True, {}
 
         # Check and perform action
         for index in list(reversed(range(self.board_shape[0]))):
@@ -105,7 +107,7 @@ class Connect4Env(gym.Env):
         self.current_player *= -1
 
         # Check if board is completely filled
-        if np.count_nonzero(np.array(self.board[0])) == self.board_shape[1]:
+        if np.count_nonzero(self.board[0]) == self.board_shape[1]:
             reward = self.DRAW_REWARD
             done = True
         else:
@@ -114,13 +116,12 @@ class Connect4Env(gym.Env):
                 done = True
                 reward = self.WIN_REWARD
 
-        return np.array(self.board), reward, done, {}
+        return self.board, reward, done, {}
 
     def reset(self) -> np.ndarray:
         self.current_player = 1
-        # self.board = np.zeros(self.board_shape)
-        self.board = [[0 for col in range(self.board_shape[1])] for row in range(self.board_shape[0])]
-        return np.array(self.board)
+        self.board = np.zeros(self.board_shape, dtype=int)
+        return self.board
 
     def render(self, mode: str = 'human', close: bool = False) -> None:
         pass
@@ -159,9 +160,10 @@ class Connect4Env(gym.Env):
                     if abs(value) == 4:
                         return True
 
+        reversed_board = np.fliplr(self.board)
         # Test reverse diagonal
-        for i in range(self.board_shape[1] - 3):
-            for j in range(self.board_shape[0] - 3):
+        for i in range(self.board_shape[0] - 3):
+            for j in range(self.board_shape[1] - 3):
                 value = 0
                 for k in range(4):
                     value += reversed_board[i + k][j + k]
