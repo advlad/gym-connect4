@@ -3,7 +3,7 @@ import gym_connect4
 import numpy as np
 
 
-env = gym.make('gym_connect4:Connect4-v0')
+env = gym.make('Connect4-v0')
 env.reset()
 
 total_reward = 0
@@ -18,10 +18,15 @@ while not done:
 
         new_state, reward, done, _ = env.step(action)
         total_reward += reward
-        if done and reward == 1:
-            print(f"winner: {player}")
-            print("board state:", new_state)
-            print(f"total reward={total_reward}")
+        if done:
+            if reward == 1:
+                print(f"winner: {player}")
+                print("board state:\n", new_state)
+                print(f"total reward={total_reward}")
+            else:
+                print("draw")
+                print("board state:\n", new_state)
+                print(f"total reward={total_reward}")
             break
 
 env.close()
