@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 import gym
 import numpy as np
@@ -8,16 +9,28 @@ from gym import spaces, logger
 class Player(ABC):
     """ Class used for evaluating the game """
 
-    def __init__(self, env):
-        pass
+    def __init__(self, env, name='Player'):
+        self.name = name
+        self.env = env
 
     @abstractmethod
     def get_next_action(self, state: np.ndarray) -> int:
         pass
 
-    @abstractmethod
     def learn(self, state, action, reward, done) -> None:
         pass
+
+
+class RandomPlayer(Player):
+    def __init__(self, env, name='RandomPlayer'):
+        super(RandomPlayer, self).__init__(env, name)
+
+    def get_next_action(self, state: np.ndarray) -> int:
+        for _ in range(100):
+            action = np.random.randint(self.env.action_space.n)
+            if self.env.is_valid_action(action):
+                return action
+        raise Exception('Unable to determine a valid move! Maybe invoke at the wrong time?')
 
 
 class Connect4Env(gym.Env):
@@ -75,13 +88,13 @@ class Connect4Env(gym.Env):
     #     # ToDo: implement game loop from app.py
     #     return 1
 
-    def step(self, action: int):
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
         reward = self.DEF_REWARD
         done = False
 
         if not self.is_valid_action(action):
             print("Invalid action, column is already full")
-            return self.board, self.DEF_REWARD, False, {}
+            return np.array(self.board), self.DEF_REWARD, False, {}
 
         # Check and perform action
         for index in list(reversed(range(self.board_shape[0]))):
@@ -103,25 +116,25 @@ class Connect4Env(gym.Env):
 
         return np.array(self.board), reward, done, {}
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         self.current_player = 1
         # self.board = np.zeros(self.board_shape)
         self.board = [[0 for col in range(self.board_shape[1])] for row in range(self.board_shape[0])]
         return np.array(self.board)
 
-    def render(self, mode='human', close=False):
+    def render(self, mode: str = 'human', close: bool = False) -> None:
         pass
 
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def is_valid_action(self, action):
+    def is_valid_action(self, action: int) -> bool:
         if self.board[0][action] == 0:
             return True
 
         return False
 
-    def is_win_state(self):
+    def is_win_state(self) -> bool:
         # Test rows
         for i in range(self.board_shape[0]):
             for j in range(self.board_shape[1] - 3):
